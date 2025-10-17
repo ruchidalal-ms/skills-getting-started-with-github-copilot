@@ -10,8 +10,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch("/activities");
       const activities = await response.json();
 
-      // Clear loading message
+      // Clear loading message and previous content
       activitiesList.innerHTML = "";
+
+      // Reset activity select but keep the default placeholder option
+      activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
@@ -20,11 +23,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        // Build participants HTML
+        let participantsHtml = "";
+        if (details.participants && details.participants.length > 0) {
+          participantsHtml = `<div class="participants-section">
+              <h5>Participants</h5>
+              <ul class="participants-list">
+                ${details.participants
+                  .map((p) => {
+                    // derive initials from email/name before '@'
+                    const initials = String(p).split("@")[0].slice(0,2).toUpperCase();
+                    return `<li class="participant-item"><span class="participant-badge">${initials}</span>${p}</li>`;
+                  })
+                  .join("")}
+              </ul>
+            </div>`;
+        } else {
+          participantsHtml = `<div class="participants-section">
+              <h5>Participants</h5>
+              <div class="no-participants">No participants yet. Be the first to sign up!</div>
+            </div>`;
+        }
+
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          ${participantsHtml}
         `;
 
         activitiesList.appendChild(activityCard);
@@ -62,6 +88,9 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+
+        // Refresh activities to show updated participants and availability
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
